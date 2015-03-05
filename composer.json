@@ -1,0 +1,24 @@
+{
+    "name": "tieste-group/sharding",
+    "type": "library",
+    "description": "Sharding module",
+    "keywords": ["sharding"],
+    "homepage": "https://github.com/TiesteGroup/ShardingTrait.git",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Svetlana Razina",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "autoload": {
+        "psr-0": {
+            "Sharding": "lib/",
+            "Sharding\\Test": "test/lib/"
+        }
+    }
+}
+
