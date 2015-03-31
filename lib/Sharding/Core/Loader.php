@@ -2,8 +2,7 @@
 
 namespace Sharding\Core;
 
-use Core\Utils as _U,
-	Sharding\Core\Mode\Loadbalance\Map as LoadbalancerMapper,
+use Sharding\Core\Mode\Loadbalance\Map as LoadbalancerMapper,
 	Sharding\Core\Mode\Limitbatch\Map as LimitbatchMapper,
 	Sharding\Core\Mode\Oddeven\Map as OddevenMapper;
 

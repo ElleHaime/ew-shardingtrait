@@ -2,7 +2,6 @@
 
 namespace Sharding\Core\Adapter\Mysql;
 
-use Core\Utils as _U;
 
 trait TMysql
 {
@@ -126,7 +125,7 @@ trait TMysql
 	public function fetchOne()
 	{
 		$this -> composeQuery();
-		
+
 		$fetch = $this -> connection -> query($this -> queryExpr);
 		if ($fetch -> rowCount() == 0) {
 			$result = false;

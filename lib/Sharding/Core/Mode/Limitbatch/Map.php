@@ -2,8 +2,6 @@
 
 namespace Sharding\Core\Mode\Limitbatch;
 
-use Core\Utils as _U;
-
 class Map
 {
 	public $id				= false;

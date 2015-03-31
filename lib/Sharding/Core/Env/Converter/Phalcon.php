@@ -4,8 +4,7 @@ use Core\Model;
 
 namespace Sharding\Core\Env\Converter;
 
-use Core\Utils as _U,
-    Sharding\Core\Loader as Loader,
+use Sharding\Core\Loader as Loader,
 	Sharding\Core\Model\Model as Model,
 	Sharding\Core\Env\Helper\THelper as Helper;
 

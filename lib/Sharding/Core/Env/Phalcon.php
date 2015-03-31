@@ -4,8 +4,7 @@ use Core\Model;
 
 namespace Sharding\Core\Env;
 
-use Core\Utils as _U,
-    Sharding\Core\Loader as Loader,
+use Sharding\Core\Loader as Loader,
 	Sharding\Core\Model\Model as Model,
 	Sharding\Core\Env\Helper\THelper as Helper,
 	\Exception as Exception;
@@ -15,17 +14,17 @@ trait Phalcon
 {
 	use Helper;
 	
-	public static $targetShardCriteria	= false;
+	public static $targetShardCriteria		= false;
 	public static $convertationMode		= false;
-	public static $needTargetShard		= true;
+	public static $needTargetShard			= true;
 	
-	public $app							= false;
-	public $destinationId				= false;
-	public $destinationDb				= false;
-	public $destinationTable			= false;
-	public $modeStrategy				= false;
+	public $app								= false;
+	public $destinationId					= false;
+	public $destinationDb					= false;
+	public $destinationTable				= false;
+	public $modeStrategy					= false;
 	
-	public $relationOf					= false;
+	public $relationOf						= false;
 
 	
 	public function onConstruct()
@@ -58,27 +57,39 @@ trait Phalcon
 	public function save($data = NULL, $whiteList = NULL)
 	{
 		if (self::$targetShardCriteria === false) {
-			throw new Exception('shard criteria must be setted');
+			throw new Exception('Shard criteria must be setted');
 			return false; 
 		}
-
 		$reflection = new Model($this -> app);
-		$reflection -> setConnection($this -> destinationDb);
-		$reflection -> setEntity($this -> destinationTable);
-		$reflectionFields = $reflection -> getEntityStructure(); 
-
-		foreach(get_object_vars($this) as $prop => $value) {
-			if (isset($reflectionFields[$prop])) {
-				if ($value == '') {
-					$value = NULL;
-				}
-				$reflectionFields[$prop]['value'] = $value;			
-			}
-		}
+		$reflectionFields = $this -> getObjectReflectionFields($reflection);
 		$newObject = $reflection -> save($reflectionFields, $this -> destinationId);
 		$this -> id = $newObject;
 		
 		return $this;		
+	}
+	
+	
+	/**
+	 * Override Phalcon\Mvc\Model save() method.
+	 *
+	 * @access public
+	 * @param array $data
+	 * @param array $whitelist
+	 * @return Phalcon\Mvc\Model object|false
+	 */
+	public function update($data = NULL, $whiteList = NULL)
+	{
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false; 
+		}
+
+		$reflection = new Model($this -> app);
+		$reflectionFields = $this -> getObjectReflectionFields($reflection);
+		$object = $reflection -> update($reflectionFields, $this -> destinationId);
+		$this -> id = $object;
+		
+		return $this;
 	}
 
 	
@@ -92,7 +103,7 @@ trait Phalcon
 	public static function find($parameters = NULL)
 	{
 		if (self::$targetShardCriteria === false && self::$needTargetShard && !self::$convertationMode) {
-			throw new Exception('shard criteria must be setted');
+			throw new Exception('Shard criteria must be setted');
 			return false;
 		} else {
 			// fetch data from shard
@@ -197,7 +208,9 @@ trait Phalcon
 			$this -> setShardById($this -> id);
 		} 
 
-		return parent::__get($property);
+		if ($this -> __isset($property)) {
+			return parent::__get($property);
+		}
 	}
 
 	

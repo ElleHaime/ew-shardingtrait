@@ -2,14 +2,12 @@
 
 namespace Sharding\Core\Mode\Loadbalance;
 
-use Core\Utils as _U;
-
 class Map
 {
-	public $id			= false;
-	public $criteria	= false;
-	public $dbname		= false;
-	public $tblname		= false;
+	public $id					= false;
+	public $criteria			= false;
+	public $dbname				= false;
+	public $tblname				= false;
 	
 	public $entity;
 	public $connection;

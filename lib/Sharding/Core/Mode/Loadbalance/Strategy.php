@@ -15,6 +15,7 @@ class Strategy extends StrategyAbstract
 	protected $shardTblname			= false;
 	protected $shardId				= false;
 	protected $shardCriteria		= false;
+	protected $allowZeroCriteria	= true;
 
 	
 	/**

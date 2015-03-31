@@ -2,8 +2,6 @@
 
 namespace Sharding\Core\Model;
 
-use Core\Utils as _U;
-
 class Model
 {
 	public $app;
@@ -39,6 +37,19 @@ class Model
 		}
 	}
 	
+	
+	public function update($data, $shardId)
+	{
+		$result = $this -> connection -> setTable($this -> entity)
+									  -> updateRecord($data);
+		if ($result) {
+			return $result;
+		} else {
+			return false;
+		}
+	}
+	
+	
 	/**
 	 * Compose primary id for new records in the shard model.
 	 * Based on last inserted primary
@@ -66,6 +77,7 @@ class Model
 	public function setConnection($conn)
 	{
 		$this -> connection = $this -> app -> connections -> $conn;
+		return $this;
 	}
 	
 	public function setEntity($entity)

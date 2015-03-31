@@ -267,7 +267,7 @@ die();
 					} 
 				);
 				
-				if ($name == 'dbMaster') {
+				if ($name == 'db') {
 					$di -> set('db', $di -> get($name));
 				}
 			}

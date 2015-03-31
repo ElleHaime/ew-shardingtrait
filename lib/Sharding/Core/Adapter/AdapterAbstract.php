@@ -2,8 +2,6 @@
 
 namespace Sharding\Core\Adapter;
 
-use Core\Utils as _U;
-
 abstract class AdapterAbstract
 {
 	protected $connection;
