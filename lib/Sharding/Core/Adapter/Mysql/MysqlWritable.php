@@ -86,7 +86,11 @@ class MysqlWritable extends AdapterAbstractWritable
 					}
 				} else {
 					if ($fieldVal['type'] == 'int') {
-						$this -> queryExpr .= $fieldVal['value'];
+						if (is_null($fieldVal['value'])) {
+							$this -> queryExpr .= '0';
+						} else {
+							$this -> queryExpr .= $fieldVal['value'];
+						}
 					} else {
 						$val = preg_replace('@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.-]*(\?\S+)?)?)?)@', '<a href="$1" target="_blank">$1</a>', $fieldVal['value']);
 

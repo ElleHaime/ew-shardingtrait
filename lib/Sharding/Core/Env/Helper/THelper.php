@@ -31,7 +31,7 @@ trait THelper
 	public function useDefaultShard()
 	{
 		if (!$this -> relationOf) {
-			$object = new \ReflectionClass(__CLASS__);
+			$object = new \ReflectionClass(get_class($this));
 			$entityName = $object -> getShortName();
 		} else {
 			$entityName = $this -> relationOf;
@@ -106,20 +106,20 @@ trait THelper
 		}
 
 		$this -> selectModeStrategy();
-	
+
 		if ($this -> modeStrategy) {
-			self::$targetShardCriteria = true;
+            self::$targetShardCriteria = true;
 			$this -> modeStrategy -> selectShardByCriteria($criteria);
-			
+
 			$this -> destinationId = $this -> modeStrategy -> getId();
 			$this -> destinationDb = $this -> modeStrategy -> getDbName();
 			$this -> destinationTable = $this -> modeStrategy -> getTableName();
-			
+
 			$this -> setupShard();
 			
 			return $this;
 		} else {
-			throw new \Exception('bu! No shard by criteria');
+			throw new \Exception('bu! No shards by criteria');
 			return false;
 			
 			print_r("\n\rbu! No shard by criteria\n\r");
@@ -255,24 +255,6 @@ trait THelper
 				}
 			}
 		}
-		
-		/*$className = get_class($this);
-var_dump($className);
-		foreach ($this -> app -> config -> shardModels as $model => $data) {
-			if (isset($data -> relations)) {
-				foreach ($data -> relations as $obj => $rel) {
-					$objects = [trim($this -> app -> config -> nsConvertation . '\\' . $obj, '\\'),
-								trim($rel -> namespace . '\\' . $obj, '\\')];	
-var_dump($objects);
-					if (in_array(trim($className, '\\'), $objects)) {
-						$this -> relationOf = $model;
-var_dump($this -> relationOf);						
-						return $rel;
-					}
-				}
-			}
-print_r("\n\r");			
-		}*/
 	
 		return false;
 	}
@@ -316,25 +298,6 @@ print_r("\n\r");
 		
 		return;
 	} 
-	
-	
-	public function getObjectReflectionFields($reflection)
-	{
-		$reflection -> setConnection($this -> destinationDb);
-		$reflection -> setEntity($this -> destinationTable);
-		$reflectionFields = $reflection -> getEntityStructure();
-		
-		foreach(get_object_vars($this) as $prop => $value) {
-			if (isset($reflectionFields[$prop])) {
-				if ($value == '') {
-					$value = NULL;
-				}
-				$reflectionFields[$prop]['value'] = $value;
-			}
-		}
-		
-		return $reflectionFields;
-	}
 
 	
 	public function unsetNeedShard($param = false)
@@ -361,14 +324,79 @@ print_r("\n\r");
 	}
 	
 	
-	/**
-	 *  Just test, nothing else
-	 */	
-	public function testIsHere()
+	public function getShardId()
 	{
-		die('yep, your model supports sharding');
+		return $this -> destinationId;
 	}
+	
 
+	public function saveObject()
+	{
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false;
+		}
+		
+		$reflection = new Model($this -> app);
+		$reflection -> setConnection($this -> destinationDb);
+		$reflection -> setEntity($this -> destinationTable);
+		$reflectionFields = $reflection -> getReflectionFieldsValues($this);
+		
+		if ($newObject = $reflection -> save($reflectionFields, $this -> destinationId)) {
+			$this -> id = $newObject;
+			return true;
+		} else {
+			$this -> errors = $reflection -> getErrors();
+			return false;
+		}
+	}
+	
+	
+	public function updateObject()
+	{
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false;
+		}
+		
+		$reflection = new Model($this -> app);
+		$reflection -> setConnection($this -> destinationDb);
+		$reflection -> setEntity($this -> destinationTable);
+		$reflectionFields = $reflection -> getReflectionFieldsValues($this);
+
+		$currentShard = $this -> getShardId();
+		$this -> setShardById($this -> id);
+		$oldShard = $this -> getShardId();
+/*echo '<pre>';
+var_dump(get_class($this));
+echo '</pre>';
+//die();*/		
+		if ($currentShard != $oldShard) {
+			$oldObject = clone $this;
+			$this -> setShardByCriteria($this -> location_id);
+				
+			if ($newObject = $reflection -> save($reflectionFields, $this -> destinationId)) {
+				$this -> id = $newObject;
+		
+				$oldObject -> setShardById($oldObject -> id);
+				$oldObject -> delete();
+		
+				return true;
+			} else {
+				$this -> errors = $reflection -> getErrors();
+				return false;
+			}
+		} else {
+			if ($object = $reflection -> update($reflectionFields, $this -> destinationId)) {
+				$this -> id = $object;
+				return true;
+			} else {
+				$this -> errors = $reflection -> getErrors();
+				return false;
+			}
+		}
+	} 
+	
 	
 	private function resetModelsManager()
 	{
@@ -387,5 +415,13 @@ print_r("\n\r");
 		$this -> resetModelsManager();
 		
 		return;
+	}
+	
+	/**
+	 *  Just test, nothing else
+	 	*/
+	public function testIsHere()
+	{
+		die('yep, your model supports sharding');
 	}
 }

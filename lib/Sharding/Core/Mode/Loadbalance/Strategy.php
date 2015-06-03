@@ -12,7 +12,7 @@ class Strategy extends StrategyAbstract
 {
 	protected $shardsAvailable		= [];
 	protected $shardDbname			= false;
-	protected $shardTblname			= false;
+	protected $shardTblname		= false;
 	protected $shardId				= false;
 	protected $shardCriteria		= false;
 	protected $allowZeroCriteria	= true;

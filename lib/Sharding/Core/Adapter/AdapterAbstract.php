@@ -4,9 +4,9 @@ namespace Sharding\Core\Adapter;
 
 abstract class AdapterAbstract
 {
-	protected $connection;
-	protected $errors;
-	protected $writeable;
+	protected $connection	= false;
+	protected $errors		= [];
+	protected $writeable	= false;
 	
 	protected $host;
 	protected $port;
@@ -34,6 +34,11 @@ abstract class AdapterAbstract
 		$this -> writable = $data -> writable; 
 
 		$this -> connect();
+	}
+	
+	public function getErrors()
+	{
+		return $this -> errors;
 	}
 	
 	abstract function connect();
