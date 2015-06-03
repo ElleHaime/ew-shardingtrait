@@ -2,16 +2,15 @@
 
 namespace Sharding\Core\Model;
 
-use Core\Utils as _U;
-
 class Model
 {
 	public $app;
 	public $entity;
 	public $connection;
+	public $errors			= false;
 	
 	private $fields;
-	private $id	= false;
+	private $id			= false;
 	
 	
 	public function __construct($app)
@@ -19,13 +18,7 @@ class Model
 		$this -> app = $app;
 	}
 	
-	public function getEntityStructure()
-	{
-		$structure = $this -> connection -> setTable($this -> entity)
-										 -> getTableStructure();
-		return $structure; 
-	}
-	
+
 	public function save($data, $shardId)
 	{
 		$data = $this -> composeNewId($data, $shardId);
@@ -35,9 +28,24 @@ class Model
 		if ($result) {
 			return $this -> id;
 		} else {
+			$this -> errors = $this -> connection -> getErrors();
 			return false;
 		}
 	}
+	
+	
+	public function update($data, $shardId)
+	{
+		$result = $this -> connection -> setTable($this -> entity)
+									  -> updateRecord($data);
+		if ($result) {
+			return $result;
+		} else {
+			$this -> errors = $this -> connection -> getErrors();
+			return false;
+		}
+	}
+	
 	
 	/**
 	 * Compose primary id for new records in the shard model.
@@ -63,13 +71,47 @@ class Model
 	}
 	
 	
+	public function getEntityStructure()
+	{
+		$structure = $this -> connection -> setTable($this -> entity)
+		-> getTableStructure();
+		return $structure;
+	}
+	
+	
+	public function getReflectionFieldsValues($modelObject = false)
+	{
+		if ($modelObject) {
+			$reflectionFields = $this -> getEntityStructure();
+				
+			foreach(get_object_vars($modelObject) as $prop => $value) {
+				if (isset($reflectionFields[$prop])) {
+					if ($value == '') {
+						$value = NULL;
+					}
+					$reflectionFields[$prop]['value'] = $value;
+				}
+			}
+			return $reflectionFields;
+		} else {
+			throw new \Exception('Empty model object');
+		}
+	}
+	
+	
 	public function setConnection($conn)
 	{
 		$this -> connection = $this -> app -> connections -> $conn;
+		return $this;
 	}
 	
 	public function setEntity($entity)
 	{
 		$this -> entity = $entity;
+	}
+	
+	public function getErrors()
+	{
+		return $this -> errors;
 	}
 }

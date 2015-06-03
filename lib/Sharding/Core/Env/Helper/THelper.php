@@ -4,7 +4,8 @@ use Core\Model;
 
 namespace Sharding\Core\Env\Helper;
 
-use Core\Utils as _U;
+use Sharding\Core\Model\Model as Model;
+
 
 trait THelper
 {
@@ -20,6 +21,36 @@ trait THelper
 		$this -> setReadDestinationDb();
 		$this -> setWriteDestinationDb();
 	}
+	
+
+	/**
+	 * Set default shard and connection for sharded models
+	 *
+	 * @access public
+	 */
+	public function useDefaultShard()
+	{
+		if (!$this -> relationOf) {
+			$object = new \ReflectionClass(get_class($this));
+			$entityName = $object -> getShortName();
+		} else {
+			$entityName = $this -> relationOf;
+		}
+	
+		$entityShards = $this -> app -> getAllShards($entityName);
+		if (!empty($entityShards)) {
+			self::$targetShardCriteria = true;
+			$this -> destinationTable = $entityShards[0]['source'];
+			$this -> destinationDb = $this -> app -> getDefaultConnection();
+				
+			$this -> setupShard();
+			
+			return $this;
+		} else {
+			throw new \Exception('Model doesn\'t support sharding');
+			return false;
+		}
+	}
 
 	
 	/**
@@ -30,35 +61,35 @@ trait THelper
 	 */
 	public function setShardById($objectId)
 	{
+		if (!isset($objectId) || $objectId === '') {
+			throw new \Exception('Criteria couldn\'t be NULL');
+			return false;
+		}
+		
 		$shardId = $this -> parseShardId($objectId);
 		$this -> selectModeStrategy();
-
+		
 		if ($this -> modeStrategy) {
 			$this -> modeStrategy -> selectShardById($shardId);
-				
-			self::$targetShardCriteria = $this -> modeStrategy -> getCriteria();
+			self::$targetShardCriteria = true;
 			
 			$this -> destinationId = $this -> modeStrategy -> getId();
 			$this -> destinationDb = $this -> modeStrategy -> getDbName();
 			$this -> destinationTable = $this -> modeStrategy -> getTableName();
-			$this -> setRelationShard();
-
-			$this -> setDestinationSource();
+			
+			$this -> setupShard();
+			
+			return $this;
 		} else {
 			$this -> useDefaultConnection();
 		}
-		
-		$this -> setReadDestinationDb();
-		$this -> setWriteDestinationDb();
 	}
-	
 
 	public function setShardByDefault($relation)
 	{
 		$this -> destinationTable = $relation -> baseTable;
 		$this -> setDestinationSource();
 	}	
-
 	
 	
 	/**
@@ -69,25 +100,31 @@ trait THelper
 	 */
 	public function setShardByCriteria($criteria)
 	{
-		self::$targetShardCriteria = $criteria;
+		if (!isset($criteria) || $criteria === '') {
+			throw new \Exception('Criteria couldn\'t be NULL');
+			return false;
+		}
+
 		$this -> selectModeStrategy();
-	
+
 		if ($this -> modeStrategy) {
-			$this -> modeStrategy -> selectShardByCriteria(self::$targetShardCriteria);
-			
+            self::$targetShardCriteria = true;
+			$this -> modeStrategy -> selectShardByCriteria($criteria);
+
 			$this -> destinationId = $this -> modeStrategy -> getId();
 			$this -> destinationDb = $this -> modeStrategy -> getDbName();
 			$this -> destinationTable = $this -> modeStrategy -> getTableName();
-			$this -> setRelationShard();
 
-			$this -> setDestinationSource();
+			$this -> setupShard();
+			
+			return $this;
 		} else {
+			throw new \Exception('bu! No shards by criteria');
+			return false;
+			
+			print_r("\n\rbu! No shard by criteria\n\r");
 			$this -> useDefaultConnection();
 		}
-		
-		$this -> setReadDestinationDb();
-		
-		return $this;
 	}
 	
 	
@@ -101,21 +138,18 @@ trait THelper
 	{
 		self::$targetShardCriteria = true;
 
-		if (isset($params['conneciton']) && !empty($params['connection'])) {
-			$this -> destinationDb = $params['connection'];
-		} else {
-			$this -> destinationDb = $this -> app -> getMasterConnection();
-		}
-		if (isset($params['source']) && !empty($params['source'])) { 
+		if (isset($params['source']) && !empty($params['source'])) {
 			$this -> destinationTable = $params['source'];
-			
-			$this -> setDestinationSource();
-			$this -> setReadDestinationDb();
-			$this -> setWriteDestinationDb();
+			if (isset($params['connection']) && !empty($params['connection'])) {
+				$this -> destinationDb = $params['connection'];
+			} else {
+				$this -> destinationDb = $this -> app -> getMasterConnection();
+			}
+			$this -> setupShard();
 			
 			return $this;
 		} else {
-			return false;
+			$this -> useDefaultShard();			
 		}
 	}
 	
@@ -157,7 +191,7 @@ trait THelper
 		
 		return $criteria;
 	}
-
+	
 	
 	/**
 	 * Return all available shards for entity
@@ -170,8 +204,8 @@ trait THelper
 	
 		if ($this -> modeStrategy) {
 			$shards = $this -> modeStrategy -> selectAllShards();
-		} 
-
+		}
+	
 		return $shards;
 	}
 	
@@ -185,7 +219,7 @@ trait THelper
 	public function selectModeStrategy()
 	{
 		if (!$this -> relationOf) {
-			$object = new \ReflectionClass(__CLASS__);
+			$object = new \ReflectionClass(get_class($this));
 			$entityName = $object -> getShortName();
 		} else {
 			$entityName = $this -> relationOf;
@@ -209,16 +243,13 @@ trait THelper
 	public function getRelationByObject()
 	{
 		$className = get_class($this);
-
+		$reflection = new \ReflectionClass($className);
+		
 		foreach ($this -> app -> config -> shardModels as $model => $data) {
 			if (isset($data -> relations)) {
 				foreach ($data -> relations as $obj => $rel) {
-					$objects = [trim($this -> app -> config -> nsConvertation . '\\' . $obj, '\\'),
-								trim($rel -> namespace . '\\' . $obj, '\\')];	
-
-					if (in_array(trim($className, '\\'), $objects)) {
+					if ($obj == $reflection -> getShortName()) {
 						$this -> relationOf = $model;
-						
 						return $rel;
 					}
 				}
@@ -293,9 +324,102 @@ trait THelper
 	}
 	
 	
+	public function getShardId()
+	{
+		return $this -> destinationId;
+	}
+	
+
+	public function saveObject()
+	{
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false;
+		}
+		
+		$reflection = new Model($this -> app);
+		$reflection -> setConnection($this -> destinationDb);
+		$reflection -> setEntity($this -> destinationTable);
+		$reflectionFields = $reflection -> getReflectionFieldsValues($this);
+		
+		if ($newObject = $reflection -> save($reflectionFields, $this -> destinationId)) {
+			$this -> id = $newObject;
+			return true;
+		} else {
+			$this -> errors = $reflection -> getErrors();
+			return false;
+		}
+	}
+	
+	
+	public function updateObject()
+	{
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false;
+		}
+		
+		$reflection = new Model($this -> app);
+		$reflection -> setConnection($this -> destinationDb);
+		$reflection -> setEntity($this -> destinationTable);
+		$reflectionFields = $reflection -> getReflectionFieldsValues($this);
+
+		$currentShard = $this -> getShardId();
+		$this -> setShardById($this -> id);
+		$oldShard = $this -> getShardId();
+/*echo '<pre>';
+var_dump(get_class($this));
+echo '</pre>';
+//die();*/		
+		if ($currentShard != $oldShard) {
+			$oldObject = clone $this;
+			$this -> setShardByCriteria($this -> location_id);
+				
+			if ($newObject = $reflection -> save($reflectionFields, $this -> destinationId)) {
+				$this -> id = $newObject;
+		
+				$oldObject -> setShardById($oldObject -> id);
+				$oldObject -> delete();
+		
+				return true;
+			} else {
+				$this -> errors = $reflection -> getErrors();
+				return false;
+			}
+		} else {
+			if ($object = $reflection -> update($reflectionFields, $this -> destinationId)) {
+				$this -> id = $object;
+				return true;
+			} else {
+				$this -> errors = $reflection -> getErrors();
+				return false;
+			}
+		}
+	} 
+	
+	
+	private function resetModelsManager()
+	{
+		$mngr = parent::getModelsManager();
+		$mngr -> __destruct();
+		$mngr -> setModelSource($this, $this -> destinationTable);
+	}
+	
+	
+	private function setupShard()
+	{
+		$this -> setRelationShard();
+		$this -> setDestinationSource();
+		$this -> setReadDestinationDb();
+		$this -> setWriteDestinationDb();
+		$this -> resetModelsManager();
+		
+		return;
+	}
+	
 	/**
 	 *  Just test, nothing else
-	 */	
+	 	*/
 	public function testIsHere()
 	{
 		die('yep, your model supports sharding');

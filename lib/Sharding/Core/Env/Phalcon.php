@@ -4,8 +4,7 @@ use Core\Model;
 
 namespace Sharding\Core\Env;
 
-use Core\Utils as _U,
-    Sharding\Core\Loader as Loader,
+use Sharding\Core\Loader as Loader,
 	Sharding\Core\Model\Model as Model,
 	Sharding\Core\Env\Helper\THelper as Helper,
 	\Exception as Exception;
@@ -15,17 +14,18 @@ trait Phalcon
 {
 	use Helper;
 	
-	public static $targetShardCriteria	= false;
+	public static $targetShardCriteria		= false;
 	public static $convertationMode		= false;
-	public static $needTargetShard		= true;
+	public static $needTargetShard			= true;
 	
-	public $app							= false;
-	public $destinationId				= false;
-	public $destinationDb				= false;
-	public $destinationTable			= false;
-	public $modeStrategy				= false;
+	public $app								= false;
+	public $destinationId					= false;
+	public $destinationDb					= false;
+	public $destinationTable				= false;
+	public $modeStrategy					= false;
 	
-	public $relationOf					= false;
+	public $relationOf						= false;
+	public $errors							= false;
 
 	
 	public function onConstruct()
@@ -43,7 +43,7 @@ trait Phalcon
 		
 		if ($relation = $this -> getRelationByObject()) {
 			$this -> setShardByParent($relation);
-		}  
+		}
 	}
 
 	
@@ -57,28 +57,21 @@ trait Phalcon
 	 */
 	public function save($data = NULL, $whiteList = NULL)
 	{
-		if (self::$targetShardCriteria === false) {
-			throw new Exception('shard criteria must be setted');
-			return false; 
-		}
-
-		$reflection = new Model($this -> app);
-		$reflection -> setConnection($this -> destinationDb);
-		$reflection -> setEntity($this -> destinationTable);
-		$reflectionFields = $reflection -> getEntityStructure(); 
-
-		foreach(get_object_vars($this) as $prop => $value) {
-			if (isset($reflectionFields[$prop])) {
-				if ($value == '') {
-					$value = NULL;
-				}
-				$reflectionFields[$prop]['value'] = $value;			
-			}
-		}
-		$newObject = $reflection -> save($reflectionFields, $this -> destinationId);
-		$this -> id = $newObject;
-		
-		return $this;		
+		return $this -> saveObject(); 
+	}
+	
+	
+	/**
+	 * Override Phalcon\Mvc\Model save() method.
+	 *
+	 * @access public
+	 * @param array $data
+	 * @param array $whitelist
+	 * @return Phalcon\Mvc\Model object|false
+	 */
+	public function update($data = NULL, $whiteList = NULL)
+	{
+		return $this -> updateObject();
 	}
 
 	
@@ -92,7 +85,7 @@ trait Phalcon
 	public static function find($parameters = NULL)
 	{
 		if (self::$targetShardCriteria === false && self::$needTargetShard && !self::$convertationMode) {
-			throw new Exception('shard criteria must be setted');
+			throw new Exception('Shard criteria must be setted');
 			return false;
 		} else {
 			// fetch data from shard
@@ -116,7 +109,7 @@ trait Phalcon
 			// search by primary id. Example: findFirst(123)
 			if (!strpos($parameters, '=')) {
 				$result = parent::findFirst('id = "' . $parameters . '"');
-			} else {
+			} else { 
 				$result = parent::findFirst($parameters);
 			}
 		}
@@ -197,7 +190,9 @@ trait Phalcon
 			$this -> setShardById($this -> id);
 		} 
 
-		return parent::__get($property);
+		if ($this -> __isset($property)) {
+			return parent::__get($property);
+		}
 	}
 
 	
@@ -219,6 +214,22 @@ trait Phalcon
 	}
 	
 	
+	public function getSource()
+	{
+		if ($this -> getShardTable()) {
+			return $this -> getShardTable();
+		} else {
+			return parent::getSource();
+		}
+		
+	}
+	
+	
+	public function setSource($source)
+	{
+		return parent::setSource($this -> getShardTable());
+	}
+	
 	/**
 	 * Fucking shame, I'm sorry. For convertation to sharded structure only.
 	 * Here we fetch parent id for related model. 
@@ -236,7 +247,7 @@ trait Phalcon
 			}
 		}
 		
-		if ($callArgs) {		
+		if ($callArgs) {
 			$parent = $this -> relationOf;
 			$parentPrimary = $this -> app -> config -> shardModels -> $parent -> primary;
 			$parentId = $callArgs[2] -> $parentPrimary;
@@ -247,5 +258,57 @@ trait Phalcon
 		} else {
 			$this -> setShardByDefault($relation);
 		}
+	}
+	
+	
+	public function updateOneToOneRelations()
+	{
+	} 
+	
+	
+	public function updateOneToManyRelations()
+	{
+		$hasManyRelations = $this -> getModelsManager() -> getHasMany(new $objName);
+		
+		if (!empty($hasManyRelations)) {
+			foreach ($hasManyRelations as $index => $rel) {
+				$relOption = $rel -> getOptions();
+				$relField = $rel -> getReferencedFields();
+				$relModel = $rel -> getReferencedModel();
+					
+				if (array_key_exists($relModel, $objRelationScope)) {
+					print_r("....model " . $relModel . "\n\r");
+					$dest = new $relModel;
+					$dest -> setConvertationMode();
+			
+					$relations = $dest::find($relField . ' = "' . $oldId . '"');
+					if ($relations) {
+						foreach ($relations as $relObj) {
+							$relObj -> $relField = $newObj -> id;
+							$relObj -> setShardById($newObj -> id);
+							//print_r("....to shard " . $relObj -> getShardTable() . "\n\r");
+							$relObj -> save();
+							//print_r("....with id " . $relObj -> id . "\n\r");
+						}
+					}
+				} else {
+					$relations = $e -> $relOption['alias'];
+					if ($relations) {
+						foreach ($relations as $obj) {
+							$obj -> $relField = $newObj -> id;
+							$obj -> update();
+						}
+					}
+				}
+			}
+		}
+		
+		return;
+	}
+	
+	
+	public function updateManyToManyRelations()
+	{
+	
 	}
 }

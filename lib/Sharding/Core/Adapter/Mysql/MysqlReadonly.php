@@ -2,8 +2,7 @@
 
 namespace Sharding\Core\Adapter\Mysql;
 
-use Sharding\Core\Adapter\AdapterAbstractReadonly,
-	Core\Utils as _U;
+use Sharding\Core\Adapter\AdapterAbstractReadonly;
 
 class MysqlReadonly extends AdapterAbstractReadonly
 {

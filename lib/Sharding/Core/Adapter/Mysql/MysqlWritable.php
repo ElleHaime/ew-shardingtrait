@@ -2,12 +2,12 @@
 
 namespace Sharding\Core\Adapter\Mysql;
 
-use Sharding\Core\Adapter\AdapterAbstractWritable,
-	Core\Utils as _U;
+use Sharding\Core\Adapter\AdapterAbstractWritable;
 
 class MysqlWritable extends AdapterAbstractWritable
 {
 	use \Sharding\Core\Adapter\Mysql\TMysql;
+
 	
 	//!!!TODO: remove saveRec; rewrite Map.php work with saveRecord() 
 	public function saveRec($fields = [])
@@ -79,14 +79,26 @@ class MysqlWritable extends AdapterAbstractWritable
 				if (!$fieldVal['isnull'] && is_null($fieldVal['value'])) {
 					return false;
 				} elseif ($fieldVal['isnull'] && is_null($fieldVal['value'])) {
-					$this -> queryExpr .= 'NULL';
+					if ($fieldName == 'location_id') {
+						$this -> queryExpr .= '0';
+					} else {
+						$this -> queryExpr .= 'NULL';
+					}
 				} else {
 					if ($fieldVal['type'] == 'int') {
-						$this -> queryExpr .= $fieldVal['value'];
+						if (is_null($fieldVal['value'])) {
+							$this -> queryExpr .= '0';
+						} else {
+							$this -> queryExpr .= $fieldVal['value'];
+						}
 					} else {
 						$val = preg_replace('@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.-]*(\?\S+)?)?)?)@', '<a href="$1" target="_blank">$1</a>', $fieldVal['value']);
-						//$this -> queryExpr .= '"' . $fieldVal['value'] . '"';
-						$this -> queryExpr .= '"' . addslashes($val) . '"';
+
+						if (!is_array($val)) {
+							$this -> queryExpr .= '"' . addslashes($val) . '"';
+						} else {
+							$this -> queryExpr .= '""';
+						}
 					}
 				}
 				if ($i < $cFields) {
@@ -94,6 +106,7 @@ class MysqlWritable extends AdapterAbstractWritable
 				}
 				$i++;
 			}
+
 
 			$this -> queryExpr .= ')';
 
@@ -116,8 +129,52 @@ class MysqlWritable extends AdapterAbstractWritable
 	}
 	
 	
-	public function updateRecord()
+	public function updateRecord($fields = [])
 	{
+		$primary = $this -> getPrimaryKey();
+		if (!isset($fields[$primary]) || empty($fields[$primary])) {
+			throw new \Exception('Unable update record: primary key required');
+		}
+
+		$this -> queryExpr = 'UPDATE `' . $this -> queryTable . '` SET ';
+		
+		$i = 2;
+		$cFields = count($fields);
+		foreach ($fields as $fieldName => $fieldVal) {
+			if ($fieldName != $primary) {
+				$this -> queryExpr .= $fieldName . ' = ';				
+
+				if (!$fieldVal['isnull'] && is_null($fieldVal['value'])) {
+					return false;
+				} elseif ($fieldVal['isnull'] && is_null($fieldVal['value'])) {
+					$this -> queryExpr .= 'NULL';
+				} else {
+					if ($fieldVal['type'] == 'int') {
+						$this -> queryExpr .= $fieldVal['value'];
+					} else {
+						$val = preg_replace('@(https?://([-\w\.]+)+(:\d+)?(/([\w/_\.-]*(\?\S+)?)?)?)@', '<a href="$1" target="_blank">$1</a>', $fieldVal['value']);
+						$this -> queryExpr .= '"' . addslashes($val) . '"';
+					}
+				}
+				if ($i < $cFields) {
+					$this -> queryExpr .= ', ';
+				}
+				$i++;
+			}
+		}
+		
+		$this -> queryExpr .= ' WHERE ' . $primary . ' = "' . $fields[$primary]['value'] . '"';
+
+		try {
+			$this -> connection -> query($this -> queryExpr);
+			$this -> clearQuery();
+			return $fields[$primary]['value'];
+		} catch(\PDOException $e) {
+			$this -> errors = $e -> getMessage();
+			$this -> clearQuery();
+			return false;
+		}
+
 		return;
 	}
 	

@@ -2,7 +2,6 @@
 
 namespace Sharding\Core\Adapter\Mysql;
 
-use Core\Utils as _U;
 
 trait TMysql
 {
@@ -11,6 +10,7 @@ trait TMysql
 		try {
 			$this -> connection = new \PDO('mysql:host=' . $this -> host . ';port=' . $this -> port . ';dbname=' . $this -> database . ';charset=utf8', $this -> user, $this -> password, array(\PDO::ATTR_PERSISTENT => true));
 			$this -> connection -> setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+			$this -> connection -> exec('SET NAMES utf8');
 		} catch(\PDOException $e) {
 			$this -> errors = $e -> getMessage();
 		}
@@ -89,8 +89,13 @@ trait TMysql
 	
 	public function setTable($table)
 	{
-		$this -> queryTable = $table;
-		return $this;
+		if (!is_null($table)) {
+			$this -> queryTable = $table;
+			
+			return $this;
+		} else {
+			throw new \Exception('Table shouldn\'t be NULL');
+		}
 	}
 	
 	public function setFetchClass($class)
@@ -126,7 +131,7 @@ trait TMysql
 	public function fetchOne()
 	{
 		$this -> composeQuery();
-		
+
 		$fetch = $this -> connection -> query($this -> queryExpr);
 		if ($fetch -> rowCount() == 0) {
 			$result = false;

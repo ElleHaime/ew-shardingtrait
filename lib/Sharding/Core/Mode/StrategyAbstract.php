@@ -2,8 +2,6 @@
 
 namespace Sharding\Core\Mode;
 
-use Core\Utils as _U;
-
 abstract class StrategyAbstract
 {
 	public $app;

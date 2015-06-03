@@ -25,4 +25,14 @@ abstract class AdapterAbstractReadonly extends AdapterAbstract
 	{
 		return;
 	}
+	
+	public final function createTableBySample($tblName)
+	{
+		return;
+	}
+	
+	public final function createShardMap($tblName, $data)
+	{
+		return;
+	}
 }

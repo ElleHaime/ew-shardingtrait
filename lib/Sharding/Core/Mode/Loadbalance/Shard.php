@@ -2,8 +2,6 @@
 
 namespace Sharding\Core\Mode\Loadbalance;
 
-use Core\Utils as _U;
-
 class Shard
 {
 	public $entity;
@@ -84,6 +82,7 @@ class Shard
 	public function useConnection($conn)
 	{
 		$this -> connection = $this -> app -> connections -> $conn;
+		return $this;
 	}
 	
 	
