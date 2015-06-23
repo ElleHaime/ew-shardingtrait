@@ -106,17 +106,17 @@ trait THelper
 		}
 
 		$this -> selectModeStrategy();
-
+		
 		if ($this -> modeStrategy) {
-            self::$targetShardCriteria = true;
+			self::$targetShardCriteria = true;
 			$this -> modeStrategy -> selectShardByCriteria($criteria);
-
+				
 			$this -> destinationId = $this -> modeStrategy -> getId();
 			$this -> destinationDb = $this -> modeStrategy -> getDbName();
 			$this -> destinationTable = $this -> modeStrategy -> getTableName();
-
-			$this -> setupShard();
 			
+			$this -> setupShard();
+				
 			return $this;
 		} else {
 			throw new \Exception('bu! No shards by criteria');
@@ -255,7 +255,7 @@ trait THelper
 				}
 			}
 		}
-	
+		
 		return false;
 	}
 	

@@ -33,7 +33,7 @@ class Strategy extends StrategyAbstract
 		$mapper -> setEntity($this -> shardEntity);
 		$mapper -> useConnection($this -> app -> getMasterConnection());
 		$mapper -> findShard('criteria', $arg);
-
+		
 		// create new shard or use existed
 		if ($mapper -> id) {
 			$this -> shardDbname = $mapper -> dbname;
@@ -191,5 +191,6 @@ class Strategy extends StrategyAbstract
 	{
 		return $this -> shardCriteria;
 	}
+	
 }
 

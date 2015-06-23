@@ -18,11 +18,7 @@ trait TMysql
 		return $this;
 	}
 	
-	public function disconnect()
-	{
-		$this -> connection = null;
-	}
-	
+
 	public function tableExists($tblName)
 	{
 		$query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = "' . $this -> database . '" AND table_name = "' . $tblName . '"';
@@ -104,11 +100,21 @@ trait TMysql
 		return $this;
 	}
 	
-	public function addCondition($condition)
+	/*public function addCondition($condition)
 	{
 		$this -> conditions[] = $condition;
 		return $this; 
+	}*/
+	
+	public function addCondition($field, $value, $cond)
+	{
+		$this -> conditions['field'][] = $field;
+		$this -> conditions['value'][] = $value;
+		$this -> conditions['cond'][] = $cond;
+		
+		return $this;
 	}
+	
 	
 	public function addField($field)
 	{
@@ -128,11 +134,11 @@ trait TMysql
 		return (int)$result -> records;
 	}
 	
-	public function fetchOne()
+	/*public function fetchOne()
 	{
 		$this -> composeQuery();
-
 		$fetch = $this -> connection -> query($this -> queryExpr);
+
 		if ($fetch -> rowCount() == 0) {
 			$result = false;
 		} else {
@@ -146,9 +152,29 @@ trait TMysql
 			}
 		}
 		$this -> clearQuery();
-
+		
+		return $result;
+	} */
+	
+	
+	public function fetchOne()
+	{
+		$fetch = $this -> composeQuery();
+		$fetch -> execute();
+		
+		if ($this -> fetchClass) {
+			$fetch -> setFetchMode(\PDO::FETCH_CLASS, $this -> fetchClass);
+			$result = $fetch -> fetch();
+		} elseif ($this -> fetchFormat == 'OBJECT') {
+			$result = $fetch -> fetch(\PDO::FETCH_LAZY);
+		} else {
+			$result = $fetch -> fetch(\PDO::FETCH_ASSOC);
+		}
+		$this -> clearQuery();
+	
 		return $result;
 	}
+	
 	
 	public function fetch()
 	{
@@ -209,6 +235,7 @@ trait TMysql
 		$this -> offset = false;
 		$this -> fields = [];
 		$this -> conditions = [];
+		$this -> queryBind = [];
 		$this -> queryExpr = '';
 		$this -> fetchClass = false;
 		
@@ -219,7 +246,6 @@ trait TMysql
 	private function processFields()
 	{
 		if (!empty($this -> fields)) {
-			$this -> processFields();
 			foreach ($this -> fields as $index => $field) {
 				$this -> queryExpr .= $this -> queryTable . '.' . $field . ',';
 			}
@@ -231,7 +257,7 @@ trait TMysql
 		return;
 	}
 	
-	private function processConditions()
+	/*private function processConditions()
 	{
 		if (!empty($this -> conditions)) {
 			$this -> queryExpr .= ' WHERE ';
@@ -247,6 +273,26 @@ trait TMysql
 		
 		return;
 	}
+*/	
+	
+	private function processConditions()
+	{
+	
+		if (!empty($this -> conditions['field'])) {
+			$this -> queryExpr .= ' WHERE ';
+			$conds = count($this -> conditions['field']);
+	
+			for ($i = 0; $i < $conds; $i++) {
+				$this -> queryExpr .= $this -> conditions['field'][$i] . $this -> conditions['cond'][$i] . ':' . $this -> conditions['field'][$i];
+				$this -> queryBind[':' . $this -> conditions['field'][$i]] = $this -> conditions['value'][$i];
+				if ($i < $conds - 1) {
+					$this -> queryExpr .= ' AND ';
+				}
+			}
+		}
+		return;
+	}
+	
 	
 	private function composeQuery()
 	{
@@ -254,6 +300,14 @@ trait TMysql
 		$this -> processFields();
 		$this -> queryExpr .= ' FROM ' . $this -> queryTable;
 		$this -> processConditions();
+		
+		$fetch = $this -> connection -> prepare($this -> queryExpr);
+
+		foreach ($this -> queryBind as $key => $val) {
+			$fetch -> bindParam($key, $val);
+		}
+		
+		return $fetch;
 	}
 	
 	

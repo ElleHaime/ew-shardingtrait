@@ -43,7 +43,7 @@ trait Phalcon
 		
 		if ($relation = $this -> getRelationByObject()) {
 			$this -> setShardByParent($relation);
-		}
+		}  
 	}
 
 	
