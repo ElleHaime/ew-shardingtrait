@@ -398,12 +398,12 @@ echo '</pre>';
 	} 
 	
 	
-	private function resetModelsManager()
+	/*private function resetModelsManager()
 	{
 		$mngr = parent::getModelsManager();
 		$mngr -> __destruct();
 		$mngr -> setModelSource($this, $this -> destinationTable);
-	}
+	}*/
 	
 	
 	private function setupShard()
@@ -412,7 +412,8 @@ echo '</pre>';
 		$this -> setDestinationSource();
 		$this -> setReadDestinationDb();
 		$this -> setWriteDestinationDb();
-		$this -> resetModelsManager();
+//		$this -> resetModelsManager();
+		$this -> getModelsManager();
 		
 		return;
 	}

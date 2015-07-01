@@ -166,7 +166,7 @@ trait Phalcon
 		$mngr = parent::getModelsManager();
 
 		if (!is_null($this -> id) && !self::$convertationMode && $this -> getShardTable()) {
-			$mngr -> __destruct();
+			//$mngr -> __destruct();
 			$mngr -> setModelSource($this, $this -> destinationTable);
 		}
 		
