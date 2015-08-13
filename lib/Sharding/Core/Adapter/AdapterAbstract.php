@@ -20,7 +20,6 @@ abstract class AdapterAbstract
 	protected $conditions	= [];
 	protected $fields 		= [];
 	protected $queryExpr 	= '';
-	protected $queryBind 	= [];
 	protected $fetchFormat	= 'OBJECT';
 	protected $fetchClass	= false;
 	

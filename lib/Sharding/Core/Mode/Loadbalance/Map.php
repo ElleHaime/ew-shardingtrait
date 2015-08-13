@@ -27,11 +27,12 @@ class Map
 	 * @param int|string $value
 	 * @return Map object | false 
 	 */
-	/*public function findShard($param, $value)
+	public function findShard($param, $value)
 	{
 		$result = $this -> connection -> setTable($this -> entity)
 									  -> addCondition($this -> entity . '.' . $param . ' = ' . $value)
 									  -> fetchOne();
+		
 		if ($result) {
 			$this -> id = $result -> id;
 			$this -> dbname = $result -> dbname;
@@ -39,21 +40,6 @@ class Map
 			$this -> criteria = $result -> criteria;
 		} 
 		
-		return;
-	}*/
-	
-	public function findShard($param, $value)
-	{
-		$result = $this -> connection -> setTable($this -> entity)
-									  -> addCondition($param, $value, '=')
-									  -> fetchOne();
-		if ($result) {
-			$this -> id = $result -> id;
-			$this -> dbname = $result -> dbname;
-			$this -> tblname = $result -> tblname;
-			$this -> criteria = $result -> criteria;
-		}
-	
 		return;
 	}
 	

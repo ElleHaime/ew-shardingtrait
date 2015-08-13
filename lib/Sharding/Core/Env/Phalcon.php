@@ -43,7 +43,7 @@ trait Phalcon
 		
 		if ($relation = $this -> getRelationByObject()) {
 			$this -> setShardByParent($relation);
-		}  
+		}
 	}
 
 	
@@ -143,18 +143,6 @@ trait Phalcon
 	
 	
 	/**
-	 * Set shard table
-	 * Use Phalcon\Mvc\Model setSource()
-	 * 
-	 * @access public
-	 */
-	public function setDestinationSource()
-	{
-		$this -> setSource($this -> destinationTable);
-	}
-	
-	
-	/**
 	 * Set shard in models manager. 
 	 * For search in all shards  
 	 * Use Phalcon\Mvc\Model setModelSource()
@@ -164,15 +152,26 @@ trait Phalcon
 	public function getModelsManager()
 	{
 		$mngr = parent::getModelsManager();
-
-		if (!is_null($this -> id) && !self::$convertationMode && $this -> getShardTable()) {
-			//$mngr -> __destruct();
+		//if (!is_null($this -> id) && !self::$convertationMode && $this -> getShardTable()) {
+		if (!self::$convertationMode && $this -> getShardTable()) {
+			$mngr -> clearReusableObjects();
 			$mngr -> setModelSource($this, $this -> destinationTable);
 		}
 		
 		return $mngr;
 	}
-
+	
+	/**
+	 * Reset models manager 
+	 */	
+	private function resetModelsManager()
+	{
+		$mngr = parent::getModelsManager();
+		$mngr -> setModelSource($this, $this -> destinationTable); 
+		
+		return $mngr;
+	}
+	
 	
 	/**
 	 * Override 'magic' Phalcon\Mvc\Model __get(). Return related records using 
@@ -221,11 +220,10 @@ trait Phalcon
 		} else {
 			return parent::getSource();
 		}
-		
 	}
 	
 	
-	public function setSource($source)
+	public function setSource()
 	{
 		return parent::setSource($this -> getShardTable());
 	}

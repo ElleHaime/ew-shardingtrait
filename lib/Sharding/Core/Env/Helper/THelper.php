@@ -88,7 +88,7 @@ trait THelper
 	public function setShardByDefault($relation)
 	{
 		$this -> destinationTable = $relation -> baseTable;
-		$this -> setDestinationSource();
+		$this -> setSource();
 	}	
 	
 	
@@ -100,23 +100,23 @@ trait THelper
 	 */
 	public function setShardByCriteria($criteria)
 	{
-		if (!isset($criteria) || $criteria === '') {
+		if (!isset($criteria) || $criteria === '' || $criteria === false) {
 			throw new \Exception('Criteria couldn\'t be NULL');
 			return false;
 		}
 
 		$this -> selectModeStrategy();
-		
+
 		if ($this -> modeStrategy) {
-			self::$targetShardCriteria = true;
+            self::$targetShardCriteria = true;
 			$this -> modeStrategy -> selectShardByCriteria($criteria);
-				
+
 			$this -> destinationId = $this -> modeStrategy -> getId();
 			$this -> destinationDb = $this -> modeStrategy -> getDbName();
 			$this -> destinationTable = $this -> modeStrategy -> getTableName();
-			
+
 			$this -> setupShard();
-				
+			
 			return $this;
 		} else {
 			throw new \Exception('bu! No shards by criteria');
@@ -224,7 +224,7 @@ trait THelper
 		} else {
 			$entityName = $this -> relationOf;
 		}
-
+		
 		if ($shardModel = $this -> app -> loadShardModel($entityName)) {
 			$modeName = '\Sharding\Core\Mode\\' . ucfirst($shardModel -> shardType) . '\Strategy';
 			$this -> modeStrategy = new $modeName($this -> app);
@@ -255,7 +255,7 @@ trait THelper
 				}
 			}
 		}
-		
+	
 		return false;
 	}
 	
@@ -398,22 +398,28 @@ echo '</pre>';
 	} 
 	
 	
-	/*private function resetModelsManager()
+	public function strictSqlQuery()
 	{
-		$mngr = parent::getModelsManager();
-		$mngr -> __destruct();
-		$mngr -> setModelSource($this, $this -> destinationTable);
-	}*/
+		if (self::$targetShardCriteria === false) {
+			throw new Exception('Shard criteria must be setted');
+			return false;
+		}
+		
+		$reflection = new Model($this -> app);
+		$reflection -> setConnection($this -> getShardDb());
+		$reflection -> setEntity($this -> getShardTable());
+		
+		return $reflection;
+	} 
 	
 	
 	private function setupShard()
 	{
 		$this -> setRelationShard();
-		$this -> setDestinationSource();
+		$this -> setSource();
 		$this -> setReadDestinationDb();
 		$this -> setWriteDestinationDb();
-//		$this -> resetModelsManager();
-		$this -> getModelsManager();
+		$this -> resetModelsManager();
 		
 		return;
 	}

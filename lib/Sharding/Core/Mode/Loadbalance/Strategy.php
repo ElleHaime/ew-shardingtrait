@@ -33,11 +33,11 @@ class Strategy extends StrategyAbstract
 		$mapper -> setEntity($this -> shardEntity);
 		$mapper -> useConnection($this -> app -> getMasterConnection());
 		$mapper -> findShard('criteria', $arg);
-		
+
 		// create new shard or use existed
 		if ($mapper -> id) {
-			$this -> shardDbname = $mapper -> dbname;
-			$this -> shardTblname = $mapper -> tblname;
+			$this -> setDbName($mapper -> dbname);
+			$this -> setTblName($mapper -> tblname);			
 			$this -> shardId = $mapper -> id;
 			$this -> shardCriteria = $mapper -> criteria;
 		} else {
@@ -77,8 +77,8 @@ class Strategy extends StrategyAbstract
 
 		// create new shard or use existed
 		if ($mapper -> id) {
-			$this -> shardDbname = $mapper -> dbname;
-			$this -> shardTblname = $mapper -> tblname;
+			$this -> setDbName($mapper -> dbname);
+			$this -> setTblName($mapper -> tblname);
 			$this -> shardId = $mapper -> id;
 			$this -> shardCriteria = $mapper -> criteria;
 		} 
@@ -144,8 +144,8 @@ class Strategy extends StrategyAbstract
 		
 		$result = $mapper -> save();
 		if ($result) {
-			$this -> shardDbname = $mapper -> dbname;
-			$this -> shardTblname = $mapper -> tblname;
+			$this -> setDbName($mapper -> dbname);
+			$this -> setTblName($mapper -> tblname);
 			$this -> shardId = $mapper -> id;
 		} 
 		
@@ -162,15 +162,40 @@ class Strategy extends StrategyAbstract
 		return $this -> shardDbname; 	
 	} 
 
-	/** Return shardTblname
+	
+	/** Set shardTblname
 	 * 
 	 * @access public
 	 * @return string 
+	 */
+	public function setTblName($arg)
+	{
+		$this -> shardTblname = $arg;
+		return $this;
+	}
+	
+	
+	/** Set shardDbname
+	 *
+	 * @access public
+	 * @return string
+	 */
+	public function setDbName($arg)
+	{
+		$this -> shardDbname = $arg;
+		return $this;
+	}
+	
+	/** Return shardTblname
+	 *
+	 * @access public
+	 * @return string
 	 */
 	public function getTableName()
 	{
 		return $this -> shardTblname;
 	}
+	
 
 	/** Return shardId
 	 * 
@@ -191,6 +216,5 @@ class Strategy extends StrategyAbstract
 	{
 		return $this -> shardCriteria;
 	}
-	
 }
 

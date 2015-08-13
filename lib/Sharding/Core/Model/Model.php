@@ -7,10 +7,12 @@ class Model
 	public $app;
 	public $entity;
 	public $connection;
-	public $errors			= false;
+	public $errors				= false;
 	
 	private $fields;
-	private $id			= false;
+	private $id				= false;
+	private $selectCondition	= false;
+	private $selectFetchStyle	= false;
 	
 	
 	public function __construct($app)
@@ -47,6 +49,24 @@ class Model
 	}
 	
 	
+	public function select()
+	{
+		$query = $this -> connection -> setTable($this -> entity)
+								     -> addCondition($this -> selectCondition);
+		if ($this -> selectFetchStyle) {
+			$query -> setFetchClass($this -> selectFetchStyle); 
+		}									  
+		$result = $query -> fetch();
+
+		if ($result) {
+			return $result;
+		} else {
+			$this -> errors = $this -> connection -> getErrors();
+			return false;
+		}
+	}
+	
+	
 	/**
 	 * Compose primary id for new records in the shard model.
 	 * Based on last inserted primary
@@ -68,6 +88,20 @@ class Model
 		$this -> id = $data[$entityId['key']]['value'];
 
 		return $data;
+	}
+	
+	
+	public function addQueryCondition($condition)
+	{
+		$this -> selectCondition = $condition;
+		return $this;
+	}
+	
+	
+	public function addQueryFetchStyle($class)
+	{
+		$this -> selectFetchStyle = $class;
+		return $this;
 	}
 	
 	
