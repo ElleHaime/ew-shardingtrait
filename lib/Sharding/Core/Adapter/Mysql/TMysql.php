@@ -115,9 +115,12 @@ trait TMysql
 		$this -> fields[] = $field;
 	} 
 	
-	public function addLimit($limit)
+	public function setLimit($limit, $offset = false)
 	{
+		$this -> offset = $offset;
 		$this -> limit = $limit;
+		
+		return $this;
 	}
 	
 	public function getRowsCount()
@@ -132,6 +135,7 @@ trait TMysql
 	{
 		$this -> composeQuery();
 		$fetch = $this -> connection -> query($this -> queryExpr);
+		
 		if ($fetch -> rowCount() == 0) {
 			$result = false;
 		} else {
@@ -163,6 +167,14 @@ trait TMysql
 		}
 		$this -> clearQuery();
 		
+		return $result;
+	}
+	
+	public function fetchAffected()
+	{
+		$this -> composeCountQuery();
+		$result = $this -> connection -> query($this -> queryExpr) -> fetchColumn();
+
 		return $result;
 	}
 	
@@ -247,11 +259,30 @@ trait TMysql
 		return;
 	}
 	
+	
+	private function processLimits()
+	{
+		if ($this -> offset && $this -> limit) {
+			$this -> queryExpr .= ' LIMIT ' . (int)$this -> offset . ',' . (int)$this -> limit;
+		} elseif ($this -> limit) {
+			$this -> queryExpr .= ' LIMIT ' . (int)$this -> limit;
+		}	
+	}
+	
+	
 	private function composeQuery()
 	{
 		$this -> queryExpr = 'SELECT ';
 		$this -> processFields();
 		$this -> queryExpr .= ' FROM ' . $this -> queryTable;
+		$this -> processConditions();
+		$this -> processLimits(); 
+	}
+	
+	
+	private function composeCountQuery()
+	{
+		$this -> queryExpr = 'SELECT count(*) FROM ' . $this -> queryTable;
 		$this -> processConditions();
 	}
 	

@@ -13,6 +13,8 @@ class Model
 	private $id				= false;
 	private $selectCondition	= false;
 	private $selectFetchStyle	= false;
+	private $selectLimit		= false;
+	private $selectOffset		= false;
 	
 	
 	public function __construct($app)
@@ -49,15 +51,33 @@ class Model
 	}
 	
 	
-	public function select()
+	public function selectRecords()
 	{
 		$query = $this -> connection -> setTable($this -> entity)
 								     -> addCondition($this -> selectCondition);
 		if ($this -> selectFetchStyle) {
 			$query -> setFetchClass($this -> selectFetchStyle); 
-		}									  
+		}			
+		if ($this -> selectLimit || $this -> selectOffset) {
+			$query -> setLimit($this -> selectLimit, $this -> selectOffset);
+		}						  
 		$result = $query -> fetch();
 
+		if ($result) {
+			return $result;
+		} else {
+			$this -> errors = $this -> connection -> getErrors();
+			return false;
+		}
+	}
+	
+	
+	public function selectCount()
+	{
+		$result = $this -> connection -> setTable($this -> entity)
+									  -> addCondition($this -> selectCondition)
+									  -> fetchAffected();
+		
 		if ($result) {
 			return $result;
 		} else {
@@ -94,6 +114,26 @@ class Model
 	public function addQueryCondition($condition)
 	{
 		$this -> selectCondition = $condition;
+		return $this;
+	}
+	
+	
+	public function addQueryLimits($limit, $offset = false)
+	{
+		if (is_int($limit)) {
+			$this -> selectLimit = (int)$limit;
+		} else {
+			throw new \Exception('MySQL limit should be integer');
+			return false;
+		}
+		
+		if ($offset && is_int($offset)) {
+			$this -> selectOffset = $offset;
+		} elseif($offset && !is_int($offset)) {
+			throw new \Exception('MySQL offset should be integer');
+			return false;
+		} 
+		
 		return $this;
 	}
 	
