@@ -32,7 +32,6 @@ class Map
 		$result = $this -> connection -> setTable($this -> entity)
 									  -> addCondition($this -> entity . '.' . $param . ' = ' . $value)
 									  -> fetchOne();
-		
 		if ($result) {
 			$this -> id = $result -> id;
 			$this -> dbname = $result -> dbname;

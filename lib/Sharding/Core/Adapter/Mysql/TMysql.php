@@ -8,8 +8,10 @@ trait TMysql
 	public function connect()
 	{
 		try {
-			$this -> connection = new \PDO('mysql:host=' . $this -> host . ';port=' . $this -> port . ';dbname=' . $this -> database . ';charset=utf8', $this -> user, $this -> password, array(\PDO::ATTR_PERSISTENT => true));
+//			$this -> connection = new \PDO('mysql:host=' . $this -> host . ';port=' . $this -> port . ';dbname=' . $this -> database . ';charset=utf8', $this -> user, $this -> password, array(\PDO::ATTR_PERSISTENT => true));
+			$this -> connection = new \PDO('mysql:host=' . $this -> host . ';port=' . $this -> port . ';dbname=' . $this -> database . ';charset=utf8', $this -> user, $this -> password);
 			$this -> connection -> setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+//  		$this -> connection -> setAttribute(\PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
 			$this -> connection -> exec('SET NAMES utf8');
 		} catch(\PDOException $e) {
 			$this -> errors = $e -> getMessage();
@@ -135,7 +137,7 @@ trait TMysql
 	{
 		$this -> composeQuery();
 		$fetch = $this -> connection -> query($this -> queryExpr);
-		
+ 		
 		if ($fetch -> rowCount() == 0) {
 			$result = false;
 		} else {
@@ -143,11 +145,12 @@ trait TMysql
 				$fetch -> setFetchMode(\PDO::FETCH_CLASS, $this -> fetchClass);
 				$result = $fetch -> fetch();
 			} elseif ($this -> fetchFormat == 'OBJECT') {
-				$result = $fetch -> fetch(\PDO::FETCH_LAZY);
+				$result = $fetch -> fetch(\PDO::FETCH_OBJ);
 			} else {
 				$result = $fetch -> fetch(\PDO::FETCH_ASSOC);
 			}
 		}
+		
 		$this -> clearQuery();
 
 		return $result;

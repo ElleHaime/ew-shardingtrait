@@ -223,7 +223,7 @@ trait Phalcon
 	}
 	
 	
-	public function setSource()
+	public function setSource($source = false)
 	{
 		return parent::setSource($this -> getShardTable());
 	}
